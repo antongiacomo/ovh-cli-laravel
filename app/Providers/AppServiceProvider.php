@@ -13,6 +13,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        $localEnv = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
+
+        if (! file_exists($localEnv) ) {
+
+            $globalEnv = getenv('HOME')
+                    . DIRECTORY_SEPARATOR . '.config'
+                    . DIRECTORY_SEPARATOR . config('app.name');
+
+            app()->useEnvironmentPath($globalEnv);
+        }
+
         app()->singleton('ovh', function(){
             return new \Ovh\Api(
                 config('app.app_key'),
