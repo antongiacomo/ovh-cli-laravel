@@ -28,7 +28,6 @@ class SetupCommand extends Command
      */
     public function handle()
     {
-
         $this->info('1. Go to https://docs.ovh.com/gb/en/customer/first-steps-with-ovh-api/' . PHP_EOL);
         $this->info('2. Follow the istructions to create your 3 keys'. PHP_EOL);
         $this->info('3. Then setup your .env accordingly'. PHP_EOL);
