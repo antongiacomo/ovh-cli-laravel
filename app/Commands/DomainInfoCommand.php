@@ -12,7 +12,11 @@ class DomainInfoCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'domain:info {name}';
+    protected $signature = 'domain:info
+                            {--name= : The name of the domain}
+                            {--more : Whether to fetch more details}
+                            {--filter= : Whether we should filter out the domains}
+                            {--type=A : The record type to show by default}';
 
     /**
      * The description of the command.
@@ -28,9 +32,31 @@ class DomainInfoCommand extends Command
      */
     public function handle()
     {
-        $domain = $this->argument('name');
+        $name = $this->option('name');
+        $more = $this->option('more');
+        $filter = $this->option('filter');
 
-        $results = \App\Ovh::get("/domain/zone/$domain");
+        if ($name) {
+            $results = \App\Ovh::get("/domain/$name/serviceInfos");
+            dump($results);
+            return;
+        }
+
+        $results = \App\Ovh::get("/domain");
+
+        $results = collect($results)
+            ->filter(fn ($domain) => strpos($domain, $filter) !== false)
+            ->values()
+            ->toArray();
+
+        if ($more) {
+            $domains = $results;
+            $results = [];
+            foreach($domains as $domain) {
+                $results[] = \App\Ovh::get("/domain/$domain/serviceInfos");
+                echo '.';
+            }
+        }
 
         dump($results);
     }

@@ -5,16 +5,16 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
-class DomainRecordCommand extends Command
+class DomainZoneCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'domain:record
+    protected $signature = 'domain:zone
                             {name : The name of the domain (required)}
-                            {--type= : Type of record to inspect (optional)}
+                            {--type=A : Type of record to inspect (optional)}
                             {--subdomain= : Subdomain to inspect (optional)}
     ';
 
@@ -38,11 +38,13 @@ class DomainRecordCommand extends Command
         $subdomain = $this->option('subdomain');
 
         $results = \App\Ovh::get("/domain/zone/$domain/record", [
-            'fieldType' => $type,
+            'fieldType' => strtoupper($type),
             'subDomain' => $subdomain,
         ]);
 
-        $results = \App\Ovh::get("/domain/zone/$domain/record/$results[0]");
+        if (count($results) > 0) {
+            $results = \App\Ovh::get("/domain/zone/$domain/record/$results[0]");
+        }
 
         dump($results);
     }
