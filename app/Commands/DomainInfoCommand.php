@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
+use React\EventLoop\Factory;
 
 class DomainInfoCommand extends Command
 {
@@ -52,13 +53,37 @@ class DomainInfoCommand extends Command
         if ($more) {
             $domains = $results;
             $results = [];
-            foreach($domains as $domain) {
-                $results[] = \App\Ovh::get("/domain/$domain/serviceInfos");
-                echo '.';
-            }
-        }
+            $loop = Factory::create();
+            $bar = $this->output->createProgressBar(count($domains));
+            $bar->start();
 
-        dump($results);
+            foreach($domains as $domain) {
+                $loop->addTimer(0, function() use ($domain, &$results, $bar) {
+                    $results[] = \App\Ovh::get("/domain/$domain/serviceInfos");
+                    $bar->advance();
+                });
+            }
+
+            $loop->run();
+            $bar->finish();
+
+            echo PHP_EOL;
+
+            $headers = $results[0];
+            ksort($headers);
+
+            $this->table(
+                array_keys($headers),
+                array_map(function($res) {
+                    ksort($res);
+                    return array_map(function($el) {
+                        return is_array($el) ? implode('',$el) : $el;
+                    }, $res);
+                },$results),
+            );
+        }else {
+            dump($results);
+        }
     }
 
     /**
