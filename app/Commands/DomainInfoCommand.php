@@ -17,7 +17,8 @@ class DomainInfoCommand extends Command
                             {--name= : The name of the domain}
                             {--more : Whether to fetch more details}
                             {--filter= : Whether we should filter out the domains}
-                            {--type=A : The record type to show by default}';
+                            {--type=A : The record type to show by default}
+                            {--order= : The record type to show by default(optional)}';
 
     /**
      * The description of the command.
@@ -36,6 +37,7 @@ class DomainInfoCommand extends Command
         $name = $this->option('name');
         $more = $this->option('more');
         $filter = $this->option('filter');
+        $order = $this->option('order');
 
         if ($name) {
             $results = \App\Ovh::get("/domain/$name/serviceInfos");
@@ -69,17 +71,23 @@ class DomainInfoCommand extends Command
 
             echo PHP_EOL;
 
-            $headers = $results[0];
-            ksort($headers);
+            $rows = array_map(function($res) {
+                ksort($res);
+                return array_map(function($el) {
+                    return is_array($el) ? implode('',$el) : $el;
+                }, $res);
+            },$results);
+
+            if (!empty($order) && array_key_exists($order, $rows[0])) {
+                $orderCol = array_column($rows, $order);
+                array_multisort($orderCol, SORT_ASC, SORT_NATURAL, $rows);
+            }
+
+            $rows = array_map('array_filter', $rows);
 
             $this->table(
-                array_keys($headers),
-                array_map(function($res) {
-                    ksort($res);
-                    return array_map(function($el) {
-                        return is_array($el) ? implode('',$el) : $el;
-                    }, $res);
-                },$results),
+                array_keys($rows[0]),
+                $rows,
             );
         }else {
             dump($results);
