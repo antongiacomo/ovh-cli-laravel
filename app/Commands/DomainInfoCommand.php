@@ -86,7 +86,7 @@ class DomainInfoCommand extends Command
             $rows = array_map('array_filter', $rows);
 
             $this->table(
-                array_map('ucwords', array_keys($rows[0]),
+                array_map(fn ($key) => ucwords(preg_replace('/(?<!\ )[A-Z]/', ' $0', $key)), array_keys($rows[0])),
                 $rows,
             );
         }else {
