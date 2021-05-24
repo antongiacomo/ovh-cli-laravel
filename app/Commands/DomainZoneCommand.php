@@ -18,6 +18,7 @@ class DomainZoneCommand extends Command
                             {--filter= : Filter domains}
                             {--type=A : Type of record to inspect (optional)}
                             {--subdomain= : Subdomain to inspect (optional)}
+                            {--order= : Order by column (optional)}
     ';
 
     /**
@@ -38,6 +39,8 @@ class DomainZoneCommand extends Command
         $filter = $this->option('filter');
         $type = $this->option('type');
         $subdomain = $this->option('subdomain');
+        $order = $this->option('order');
+
 
         if ($name) {
             $results = \App\Ovh::get("/domain/$name/serviceInfos");
@@ -76,16 +79,24 @@ class DomainZoneCommand extends Command
         echo PHP_EOL;
 
         $headers = $results[0];
-        ksort($headers);
+
+        $rows = array_map(function($res) {
+            ksort($res);
+            return array_map(function($el) {
+                return is_array($el) ? implode('',$el) : $el;
+            }, $res);
+        }, $results);
+
+        if (!empty($order) && array_key_exists($order, $rows[0])) {
+            $orderCol = array_column($rows, $order);
+            array_multisort($orderCol, SORT_ASC, SORT_NATURAL, $rows);
+        }
+
+        $rows = array_map('array_filter', $rows);
 
         $this->table(
-            array_keys($headers),
-            array_map(function($res) {
-                ksort($res);
-                return array_map(function($el) {
-                    return is_array($el) ? implode('',$el) : $el;
-                }, $res);
-            },$results),
+            array_map(fn ($key) => ucwords(preg_replace('/(?<!\ )[A-Z]/', ' $0', $key)), array_keys($rows[0])),
+            $rows,
         );
     }
 

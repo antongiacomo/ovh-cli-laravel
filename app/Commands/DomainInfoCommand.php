@@ -18,7 +18,8 @@ class DomainInfoCommand extends Command
                             {--more : Whether to fetch more details}
                             {--filter= : Whether we should filter out the domains}
                             {--type=A : The record type to show by default}
-                            {--order= : The record type to show by default(optional)}';
+                            {--order= : The record type to show by default(optional)}
+                            {--format=dump : The record type to show by default(optional)}';
 
     /**
      * The description of the command.
@@ -85,12 +86,24 @@ class DomainInfoCommand extends Command
 
             $rows = array_map('array_filter', $rows);
 
-            $this->table(
-                array_map(fn ($key) => ucwords(preg_replace('/(?<!\ )[A-Z]/', ' $0', $key)), array_keys($rows[0])),
-                $rows,
-            );
+            if ($this->option('format') == 'txt') {
+                foreach($rows as $row) {
+                    echo $row['domain'] . PHP_EOL;
+                }
+            }else {
+                $this->table(
+                    array_map(fn ($key) => ucwords(preg_replace('/(?<!\ )[A-Z]/', ' $0', $key)), array_keys($rows[0])),
+                    $rows,
+                );
+            }
         }else {
-            dump($results);
+            if ($this->option('format') == 'txt') {
+                foreach($results as $res) {
+                    echo $res . PHP_EOL;
+                }
+            } else {
+                dump($results);
+            }
         }
     }
 
