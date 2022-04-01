@@ -12,3 +12,10 @@ function array_flatmap(callable $fn, $array)
 {
     return array_merge(...array_map($fn, $array));
 }
+
+function str_srv($string): array
+{
+    preg_match('/(?<priority>\d+)\s(?<weight>\d+)\s(?<port>\d+)\s(?<data>.*?)$/', $string, $matches);
+
+    return $matches;
+}

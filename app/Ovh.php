@@ -5,12 +5,12 @@ namespace App;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static self with(Downloadble $downloadble)
+ * @method static array get(string $string)
  */
 class Ovh extends Facade
 {
     protected static function getFacadeAccessor()
     {
-       return 'ovh';
+        return 'ovh';
     }
 }

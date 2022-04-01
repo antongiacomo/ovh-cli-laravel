@@ -36,54 +36,51 @@ class DomainZoneCommand extends Command
     public function handle()
     {
         $name = $this->option('name');
-        $filter = $this->option('filter');
+        // $filter = $this->option('filter');
         $type = $this->option('type');
         $subdomain = $this->option('subdomain');
         $order = $this->option('order');
 
 
-        if ($name) {
-            $results = \App\Ovh::get("/domain/$name/serviceInfos");
-            dump($results);
-            return;
-        }
-
-        $domains = collect(\App\Ovh::get("/domain"))
-            ->filter(fn ($domain) => strpos($domain, $filter) !== false)
-            ->values()
-            ->toArray();
+        // if ($name) {
+        //     $results = \App\Ovh::get("/domain/$name/serviceInfos");
+        //     dump($results);
+        //     return;
+        // }
 
         $results = [];
-        $loop = Factory::create();
-        $bar = $this->output->createProgressBar(count($domains));
-        $bar->start();
 
-        foreach($domains as $domain) {
-            $loop->addTimer(0, function() use ($domain, $type, $subdomain, &$results, $bar) {
-                $ids = \App\Ovh::get("/domain/zone/$domain/record", [
-                    'fieldType' => strtoupper($type),
-                    'subDomain' => $subdomain,
-                ]);
+        $ids = \App\Ovh::get("/domain/zone/$name/record");
 
-                if (count($ids) > 0) {
-                    $results[] = \App\Ovh::get("/domain/zone/$domain/record/$ids[0]");
-                }
+        $results[] = collect($ids)->map(function ($id) use ($name) {
+            return \App\Ovh::get("/domain/zone/$name/record/$id");
+        })->toArray();
 
-                $bar->advance();
-            });
-        }
-
-        $loop->run();
-        $bar->finish();
 
         echo PHP_EOL;
 
+        $results = $results[0];
         $headers = $results[0];
 
-        $rows = array_map(function($res) {
+        // save json to file
+        $file = storage_path("app/$name.json");
+
+        $data = collect($results)->map(fn ($record) => [
+            'host' => $record['subDomain'],
+            'type' => $record['fieldType'],
+            'data' => $record['fieldType'] == 'SRV' ? str_srv($record['target'])['data'] : $record['target'],
+            'ttl' => $record['ttl'],
+            'priority' => $record['fieldType'] == 'SRV' ? (int)str_srv($record['target'])['priority'] : 0,
+            'weight' => $record['fieldType'] == 'SRV' ? (int)str_srv($record['target'])['weight'] : 0,
+            'port' => $record['fieldType'] == 'SRV' ? (int)str_srv($record['target'])['port'] : 0,
+        ])->toArray();
+        file_put_contents($file, json_encode($data));
+
+
+        $rows = array_map(function ($res) {
             ksort($res);
-            return array_map(function($el) {
-                return is_array($el) ? implode('',$el) : $el;
+            return array_map(function ($el) {
+                return is_array($el) ? implode('', $el) : $el;
             }, $res);
         }, $results);
 

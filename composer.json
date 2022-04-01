@@ -18,6 +18,7 @@
     "require": {
         "php": "^8.0",
         "laravel-zero/framework": "^8.7",
+        "nunomaduro/termwind": "^1.4",
         "ovh/ovh": "^2.0",
         "react/event-loop": "^1.1"
     },

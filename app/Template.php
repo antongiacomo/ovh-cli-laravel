@@ -2,10 +2,21 @@
 
 namespace App;
 
-use Illuminate\Console\Command;
+use Illuminate\Support\Str;
+use Symfony\Component\Translation\Dumper\DumperInterface;
 
 class Template
 {
+
+    public static function parse($template, string $domain)
+    {
+        Template::run([
+            'id' => Str::random(12),
+            'zone' => array_map(fn ($row) =>
+                array_combine(['host', 'type', 'value'], str_getcsv($row)), $template)
+        ], $domain);
+    }
+
     public static function run(array $template, string $domain)
     {
         $records = $template['zone'];
@@ -15,7 +26,7 @@ class Template
             $type = $record['type'];
             $value = $record['value'];
 
-            echo ("Updating $domain $type record to $value") . PHP_EOL;
+            echo ("Updating $domain: $host $type $value") . PHP_EOL;
 
             $results = \App\Ovh::get("/domain/zone/$domain/record", [
                 'fieldType' => $type,
@@ -26,10 +37,15 @@ class Template
                 $results = \App\Ovh::put("/domain/zone/$domain/record/$results[0]", [
                     'target' => $value
                 ]);
-                $results = \App\Ovh::post("/domain/zone/$domain/refresh");
             } else {
-                dump($results);
+                $results = \App\Ovh::post("/domain/zone/$domain/record", [
+                    'fieldType' => $type,
+                    'subDomain' => $host,
+                    'target' => $value
+                ]);
             }
+
+            $results = \App\Ovh::post("/domain/zone/$domain/refresh");
         }
     }
 }

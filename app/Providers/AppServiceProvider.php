@@ -21,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
                     . DIRECTORY_SEPARATOR . '.config'
                     . DIRECTORY_SEPARATOR . config('app.name');
 
+            config(['env_path' => $globalEnv ]);
+
             app()->useEnvironmentPath($globalEnv);
         }
 

@@ -4,25 +4,27 @@ namespace App\Commands;
 
 use App\Template;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
-use SplFileInfo;
+use React\EventLoop\Factory;
 
-class TemplateRunCommand extends Command
+class ZoneUpdateCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'template:run {name} {domains*}';
+    protected $signature = 'zone:update
+                            {domains*}
+                            {--template=* : Template to apply on the domains}
+    ';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'run template';
+    protected $description = 'Show info about a domain';
 
     /**
      * Execute the console command.
@@ -31,21 +33,11 @@ class TemplateRunCommand extends Command
      */
     public function handle()
     {
-        $name = $this->argument('name');
         $domains = $this->argument('domains');
-
-        $templates_path = env('app_env') === 'local' ? base_path('templates') : (config('env_path') . '/templates');
-
-        $template = collect(File::allFiles($templates_path))
-            ->map(function(SplFileInfo $file) {
-                $path = $file->getPathname();
-                return include $path;
-            })->filter(function($config) use ($name) {
-                return array_key_exists('id',$config) && $config['id'] == $name;
-            })->first();
+        $template = $this->option('template');
 
         foreach($domains as $domain) {
-            Template::run($template, $domain);
+            Template::parse($template, $domain);
         }
 
         $this->info("Done!");
