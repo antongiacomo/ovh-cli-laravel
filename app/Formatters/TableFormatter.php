@@ -2,42 +2,61 @@
 
 namespace App\Formatters;
 
-use Illuminate\Contracts\Support\Arrayable;
-use Symfony\Component\Console\Helper\Table;
+use Illuminate\Support\Collection;
+
+use function Termwind\render;
 
 class TableFormatter
 {
-    public function output($rows)
+    protected Collection $columns;
+
+    public function __construct(Collection $columns = new Collection())
     {
-        $table = new Table(new \Symfony\Component\Console\Output\ConsoleOutput);
+        $this->columns = $columns->filter();
+    }
 
-        if ($rows instanceof Arrayable) {
-            $rows = $rows->toArray();
-        }
-
-        if (count($rows) == 0) {
+    public function output(Collection $rows)
+    {
+        if ($rows->count() == 0) {
             return;
         }
 
-        $rows = collect($rows)
-            ->map(function ($row) {
-                return collect($row)
-                    ->sortKeys()
-                    ->mapWithKeys(function ($value, $key) {
-                        $value = is_array($value) ? implode(', ', $value) : $value;
-                        return [$key => $value];
-                    })->toArray();
-            });
+        if ($this->columns->count() == 0) {
+            $rows = $rows
+                ->map(function ($row) {
+                    return collect($row)
+                        ->sortKeys()
+                        ->mapWithKeys(function ($value, $key) {
+                            $value = is_array($value) ? implode(', ', $value) : $value;
+                            return [$key => $value];
+                        });
+                });
 
-        $table->setHeaders(array_keys($rows[0]));
+            $this->columns = $rows[0]->keys();
+        }
 
-        $rows = $rows
-            ->map(fn ($item) => array_values($item))
-            ->sortBy(fn($result, $key) => $result[0], SORT_NATURAL)
-            ->toArray();
+        render(<<<HTML
+            <table style="borderless">
+                <thead>
+                    <tr>
+                       {$this->columns->map(fn ($column) => "<th class='text-lime-300'>{$column}</th>")->implode('')}
+                    </tr>
+                </thead>
+                <tr>
+                    {$this->rows($rows)}
+                </tr>
+            </table>
+        HTML);
+    }
 
-        $table->addRows($rows);
-
-        $table->render();
+    protected function rows(Collection $rows) {
+        return $rows->map(function ($row, $index) {
+            $class = $index % 2 == 0 ? 'text-blue-200' : 'text-gray-200';
+            return "<tr>" . $this->columns->map(function ($col) use ($row, $class) {
+                $value = $row[$col] ?? 'N/A';
+                return "<td class='$class'>$value</td>";
+            })->implode('') . '</tr>';
+        })
+        ->implode("\n");
     }
 }

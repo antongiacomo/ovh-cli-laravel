@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Formatters\TableFormatter;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 use React\EventLoop\Factory;
@@ -14,7 +15,7 @@ class DomainZoneCommand extends Command
      * @var string
      */
     protected $signature = 'domain:zone
-                            {--name= : The name of the domain (optional)}
+                            {name : The name of the domain (required)}
                             {--filter= : Filter domains}
                             {--type=A : Type of record to inspect (optional)}
                             {--subdomain= : Subdomain to inspect (optional)}
@@ -35,25 +36,27 @@ class DomainZoneCommand extends Command
      */
     public function handle()
     {
-        $name = $this->option('name');
-        // $filter = $this->option('filter');
+        $name = $this->argument('name');
         $type = $this->option('type');
         $subdomain = $this->option('subdomain');
         $order = $this->option('order');
 
-
-        // if ($name) {
-        //     $results = \App\Ovh::get("/domain/$name/serviceInfos");
-        //     dump($results);
-        //     return;
-        // }
-
         $results = [];
 
-        $ids = \App\Ovh::get("/domain/zone/$name/record");
+        try {
+            $ids = \App\Ovh::get("/domain/zone/$name/record");
+        } catch (\Throwable $e) {
+            $this->warn($e->getMessage());
+            exit;
+        }
 
         $results[] = collect($ids)->map(function ($id) use ($name) {
-            return \App\Ovh::get("/domain/zone/$name/record/$id");
+            try {
+                return \App\Ovh::get("/domain/zone/$name/record/$id");
+            } catch (\Throwable $e) {
+                $this->error($e->getMessage());
+                exit;
+            }
         })->toArray();
 
 
@@ -74,8 +77,6 @@ class DomainZoneCommand extends Command
             'weight' => $record['fieldType'] == 'SRV' ? (int)str_srv($record['target'])['weight'] : 0,
             'port' => $record['fieldType'] == 'SRV' ? (int)str_srv($record['target'])['port'] : 0,
         ])->toArray();
-        file_put_contents($file, json_encode($data));
-
 
         $rows = array_map(function ($res) {
             ksort($res);
@@ -89,12 +90,13 @@ class DomainZoneCommand extends Command
             array_multisort($orderCol, SORT_ASC, SORT_NATURAL, $rows);
         }
 
-        $rows = array_map('array_filter', $rows);
+        $rows = collect(array_map('array_filter', $rows));
 
-        $this->table(
-            array_map(fn ($key) => ucwords(preg_replace('/(?<!\ )[A-Z]/', ' $0', $key)), array_keys($rows[0])),
-            $rows,
+        $formatter = new TableFormatter(
+            collect(array_keys($rows[0]))
         );
+
+        $formatter->output($rows);
     }
 
     /**

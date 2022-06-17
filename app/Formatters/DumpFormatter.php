@@ -2,11 +2,13 @@
 
 namespace App\Formatters;
 
+use Illuminate\Support\Collection;
+
 class DumpFormatter
 {
-    public function output(string|array $results)
+    public function output(Collection $results)
     {
-        if (!is_array($results)) {
+        if (! is_iterable($results)) {
             dump($results);
         }
 

@@ -5,6 +5,9 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
+use function Termwind\ask;
+use function Termwind\render;
+
 class DomainUpdateCommand extends Command
 {
     /**
@@ -13,10 +16,11 @@ class DomainUpdateCommand extends Command
      * @var string
      */
     protected $signature = 'domain:update
-                            {name : The name of the domain (required)}
-                            {value : The name of the domain (required)}
-                            {--type= : Type of record to inspect (required)}
-                            {--subdomain= : Subdomain to inspect (required)}
+                            {name* : The name of the domain (required)}
+                            {--value= : The name of the domain (required)}
+                            {--type=A : Type of record to inspect (required)}
+                            {--subdomain=,www : Subdomain to inspect (required)}
+                            {--dry : Run command in dry mode}
     ';
 
     /**
@@ -33,36 +37,67 @@ class DomainUpdateCommand extends Command
      */
     public function handle()
     {
-        $domain = $this->argument('name');
-        $value = $this->argument('value');
+        $domains = $this->argument('name');
+        $value = $this->option('value');
         $type = $this->option('type');
-        $subdomain = $this->option('subdomain');
+        $subdomains = explode(',', $this->option('subdomain'));
+        $dry = $this->option('dry');
 
-        $this->info("Updating $domain $type record to $value");
-
-        $results = \App\Ovh::get("/domain/zone/$domain/record", [
-            'fieldType' => $type,
-            'subDomain' => $subdomain,
-        ]);
-
-        $this->info("Got domain id: $results[0]");
-
-        $this->info("Updating $domain...");
-
-        $results = \App\Ovh::put("/domain/zone/$domain/record/$results[0]", [
-            'target' => $value
-        ]);
-
-        if (!is_null($results)) {
-            dump($results);
+        if ($dry) {
+           render("<i class='text-yellow-100'>Dry mode enabled</i><br>");
         }
+        render('');
 
-        $results = \App\Ovh::post("/domain/zone/$domain/refresh");
+        foreach ($domains as $domain) {
+            foreach ($subdomains as $subdomain) {
+                $sub = empty($subdomain) ? '' : $subdomain . '.';
 
-        if (is_null($results)) {
-            $this->info("Done!");
-        } else{
-            dump($results);
+                if (! preg_match('/^y|^$/i', ask("<span>Updating <i class='text-lime-300'>$sub$domain</i> record <strong class='text-lime-300'>$type</strong> to <strong  class='text-lime-300'>$value</strong>. Ok? (yes/no) [<span class='text-orange-300'>yes</span>]:</span>") )) {
+                    render('<i class="text-red-300">Aborted</i>');
+                    return;
+                }
+
+                try {
+                    $results = [];
+
+                    if ($dry) {
+                        render('<i class="text-yellow-300">Skipping fetching of record...</i>');
+                    }
+
+                    $this->task('Fetching record details', function () use (&$results, $type, $subdomain, $domain, $dry) {
+                        if (! $dry) {
+                            $results = \App\Ovh::get("/domain/zone/$domain/record", [
+                                'fieldType' => $type,
+                                'subDomain' => $subdomain,
+                            ]);
+                        } else {
+                            sleep(2);
+                        }
+                    });
+
+                    if ($dry) {
+                        render('<i class="text-yellow-300">Skipping update...</i>');
+                    }
+
+                    $this->task('Updating record settings', function () use ($domain, $results, $value, $dry) {
+                        if (! $dry) {
+                            $results = \App\Ovh::put("/domain/zone/$domain/record/$results[0]", [
+                                'target' => $value
+                            ]);
+                        } else {
+                            sleep(2);
+                        }
+                    });
+
+                    render('');
+                } catch (\Throwable $e) {
+                    render($e->getMessage());
+                    exit;
+                }
+            }
+
+            $this->task("Refreshing $domain zone", fn () => \App\Ovh::post("/domain/zone/$domain/refresh"));
+            render('');
         }
     }
 

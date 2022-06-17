@@ -2,19 +2,18 @@
 
 namespace App\Commands;
 
-use App\Formatters\TableFormatter;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 use function Termwind\render;
 
-class DomainCheckCommand extends Command
+class DomainSearchCommand extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'domain:check {search}';
+    protected $signature = 'domain:search {query}';
 
     /**
      * The description of the command.
@@ -30,28 +29,24 @@ class DomainCheckCommand extends Command
      */
     public function handle()
     {
-        $search = $this->argument('search');
+        $search = $this->argument('query');
 
         $results = collect(\App\Ovh::get("/domain"))
             ->filter(fn ($domain) => str_contains($domain, $search))
-            ->values()
-            ->toArray();
+            ->values();
 
         if (count($results) == 0) {
             render(<<<HTML
-            <div class="px-1">
-                <p class="text-yellow-200">Domain {$search} not found!</p>
-            </div>
+            <p class="text-yellow-300">Domain {$search} not found!</p>
             HTML);
         } else {
-            render('<h1 class="p-1 text-gray-500 font-bold">This is what I found:</h1>');
-            foreach ($results as $key => $domain) {
-                render(<<<HTML
-                <div class="px-1 text-green-500">
-                    {$domain}
-                </div>
-                HTML);
-            }
+            $items = $results->filter()->map(fn ($domain) => "<li class='text-lime-300'>{$domain}</li>")->implode('');
+
+            render(<<<HTML
+            <ol class="">
+                {$items}
+            </ol>
+            HTML);
         }
     }
 
