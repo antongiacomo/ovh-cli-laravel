@@ -25,7 +25,7 @@ jobs:
       run: composer install --prefer-dist --no-progress
 
     - name: Build
-      run: php psarco app:build --build-version=${{ github.ref_name }}
+      run: php ovhcli app:build --build-version=${{ github.ref_name }}
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
