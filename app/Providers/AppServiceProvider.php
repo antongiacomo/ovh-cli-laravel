@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        if (! file_exists(base_path() . DIRECTORY_SEPARATOR . '.env')) {
+        if (! file_exists(base_path() . DIRECTORY_SEPARATOR . '.env') && file_exists(getEnvPath() . DIRECTORY_SEPARATOR . '.env')) {
             $env = Dotenv::createImmutable(getEnvPath())->load();
 
             config()->set('app.app_key', $env['app_key']);
