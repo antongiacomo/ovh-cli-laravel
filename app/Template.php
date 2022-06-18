@@ -3,7 +3,6 @@
 namespace App;
 
 use Illuminate\Support\Str;
-use Symfony\Component\Translation\Dumper\DumperInterface;
 
 class Template
 {

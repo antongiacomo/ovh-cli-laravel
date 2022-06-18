@@ -19,3 +19,12 @@ function str_srv($string): array
 
     return $matches;
 }
+
+if (! function_exists('getEnvPath')) {
+    function getEnvPath()
+    {
+        return getenv('HOME') .
+             DIRECTORY_SEPARATOR . '.config' .
+             DIRECTORY_SEPARATOR . 'ovhcli';
+    }
+}
