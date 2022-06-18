@@ -26,8 +26,6 @@ $app = new LaravelZero\Framework\Application(
 |
 */
 
-$app->instance('path.env', getEnvPath());
-
 if (! file_exists(dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env')) {
     $app->useEnvironmentPath(getEnvPath());
 }
