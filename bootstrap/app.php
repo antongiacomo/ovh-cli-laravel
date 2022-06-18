@@ -17,21 +17,6 @@ $app = new LaravelZero\Framework\Application(
 
 /*
 |--------------------------------------------------------------------------
-| Set the correct path for the environment file
-|--------------------------------------------------------------------------
-|
-| The default environment file is usually located within the project root
-| directory. However, once you export the build of your application
-| you can move the environment file to `~/.config/ovhcli/.env`.
-|
-*/
-
-if (! file_exists(dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env')) {
-    $app->useEnvironmentPath(getEnvPath());
-}
-
-/*
-|--------------------------------------------------------------------------
 | Bind Important Interfaces
 |--------------------------------------------------------------------------
 |
